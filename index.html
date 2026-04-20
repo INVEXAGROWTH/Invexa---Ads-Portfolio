@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INVEXA — Ad Management Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════
+   TOKENS
+═══════════════════════════════ */
+:root {
+  --bg:          #060D12;
+  --card:        rgba(255,255,255,0.04);
+  --border:      rgba(255,255,255,0.10);
+
+  --teal:        #00C4A8;
+  --teal-dark:   #009A84;
+  --teal-bright: #00E5D0;
+  --teal-dim:    rgba(0,196,168,0.08);
+  --teal-line:   rgba(0,196,168,0.30);
+
+  --text-1:  #FFFFFF;
+  --text-2:  #9A9AA8;
+  --text-3:  #555566;
+
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px;
+  --s5: 40px; --s6: 48px; --s8: 64px; --s10: 80px;
+
+  --t-xs: 13px; --t-sm: 15px; --t-base: 18px;
+  --t-md: 22px; --t-lg: 28px; --t-xl: 40px;
+  --t-2xl: 52px; --t-3xl: 68px;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+}
+
+/* ═══════════════════════════════
+   RESET & BASE
+═══════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: var(--t-base);
+  line-height: 1.5;
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+canvas#particles {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════
+   PROGRESS
+═══════════════════════════════ */
+#progress {
+  position: fixed; top: 0; left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--teal), var(--teal-bright));
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 200;
+}
+
+/* ═══════════════════════════════
+   BRANDING
+═══════════════════════════════ */
+#brand-mark {
+  position: fixed; bottom: var(--s3); right: var(--s4);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--teal);
+  opacity: 0.85;
+  z-index: 200;
+}
+
+/* ═══════════════════════════════
+   COUNTER
+═══════════════════════════════ */
+#slide-counter {
+  position: fixed; top: var(--s3); right: var(--s4);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  color: var(--text-2);
+  z-index: 200;
+}
+
+/* ═══════════════════════════════
+   NAV
+═══════════════════════════════ */
+#nav {
+  position: fixed; bottom: var(--s4); left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: var(--s2);
+  z-index: 200;
+  background: rgba(6,13,18,0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 8px 16px;
+}
+.nav-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  touch-action: manipulation;
+}
+.nav-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+.dot-nav {
+  display: flex; gap: 6px; align-items: center;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+.dot.active {
+  background: var(--teal);
+  transform: scale(1.3);
+}
+#hint {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  font-size: var(--t-xs); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-3);
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* ═══════════════════════════════
+   SLIDE ENGINE
+═══════════════════════════════ */
+#deck { position: relative; width: 100%; height: 100%; z-index: 1; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: var(--s6) var(--s8);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.38s ease, transform 0.38s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.slide.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+/* Stagger animations */
+.slide.active .ani-1 { animation: fadeUp 0.5s 0.1s both; }
+.slide.active .ani-2 { animation: fadeUp 0.5s 0.2s both; }
+.slide.active .ani-3 { animation: fadeUp 0.5s 0.3s both; }
+.slide.active .ani-4 { animation: fadeUp 0.5s 0.4s both; }
+.slide.active .ani-5 { animation: fadeUp 0.5s 0.5s both; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════ */
+.eyebrow {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: var(--s2);
+}
+.headline {
+  font-size: clamp(36px, 5vw, var(--t-3xl));
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: var(--text-1);
+  margin-bottom: var(--s3);
+}
+.headline em { color: var(--teal); font-style: normal; }
+.subline {
+  font-size: clamp(15px, 1.4vw, var(--t-md));
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 620px;
+  margin: 0 auto;
+}
+.section-title {
+  font-size: clamp(26px, 3.2vw, var(--t-2xl));
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.12;
+  color: var(--text-1);
+  margin-bottom: var(--s1);
+}
+.section-title em { color: var(--teal); font-style: normal; }
+.section-sub {
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  font-weight: 400;
+  margin-bottom: var(--s4);
+  max-width: 600px;
+}
+.rule {
+  width: 32px; height: 1px;
+  background: var(--teal-line);
+  margin: var(--s3) auto;
+}
+
+/* ═══════════════════════════════
+   CARDS
+═══════════════════════════════ */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--s2);
+  width: 100%;
+  max-width: 900px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s3);
+  text-align: center;
+}
+.card-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: var(--s1);
+}
+.card-icon {
+  font-size: 28px;
+  margin-bottom: var(--s2);
+}
+
+/* ═══════════════════════════════
+   CHECKLIST
+═══════════════════════════════ */
+.checklist {
+  list-style: none;
+  display: flex; flex-direction: column; gap: var(--s2);
+  text-align: left;
+  max-width: 700px;
+  width: 100%;
+}
+.checklist li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: var(--t-sm);
+  font-weight: 400;
+  color: var(--text-1);
+  line-height: 1.55;
+}
+.checklist li svg { flex-shrink: 0; color: var(--teal); margin-top: 2px; }
+.icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══════════════════════════════
+   STAT BLOCKS
+═══════════════════════════════ */
+.stats-row {
+  display: flex; gap: var(--s6);
+  justify-content: center; align-items: center;
+  flex-wrap: wrap;
+  margin: var(--s4) 0;
+}
+.stat { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.stat-n {
+  font-size: clamp(36px, 5vw, 54px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--teal);
+  line-height: 1;
+}
+.stat-l {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  max-width: 160px;
+  text-align: center;
+}
+.stat-divider {
+  width: 1px; height: 56px;
+  background: var(--border);
+}
+
+/* ═══════════════════════════════
+   CASE STUDY LAYOUT
+═══════════════════════════════ */
+.case-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: var(--s5);
+  width: 100%;
+  max-width: 920px;
+  text-align: left;
+  align-items: center;
+}
+.case-left { display: flex; flex-direction: column; gap: var(--s2); }
+.case-right { display: flex; align-items: center; justify-content: center; }
+.case-bullets {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.case-bullets li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+.case-bullets li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--teal); flex-shrink: 0; margin-top: 5px; }
+
+.case-img {
+  width: 220px;
+  height: 300px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  object-fit: cover;
+  object-position: top center;
+  flex-shrink: 0;
+}
+
+.case-stats {
+  display: flex;
+  gap: var(--s4);
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.case-stats .stat { align-items: flex-start; }
+.case-stats .stat-n { font-size: 34px; }
+.case-stats .stat-l { text-align: left; font-size: 12px; max-width: 160px; }
+
+/* ═══════════════════════════════
+   RESPONSIVE
+═══════════════════════════════ */
+@media (max-width: 768px) {
+  .slide { padding: var(--s4) var(--s3); }
+  .case-layout { grid-template-columns: 1fr; gap: var(--s4); }
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-row { gap: var(--s3); }
+  .stat-divider { display: none; }
+  #brand-mark { bottom: 80px; right: var(--s3); }
+  #slide-counter { right: var(--s3); }
+  .checklist { padding: 0 var(--s2); }
+}
+
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .headline { font-size: 28px; }
+  .section-title { font-size: 22px; }
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<!-- PROGRESS -->
+<div id="progress"></div>
+
+<!-- SLIDE COUNTER -->
+<div id="slide-counter">1 / 7</div>
+
+<!-- BRANDING -->
+<div id="brand-mark">INVEXA</div>
+
+<!-- NAVIGATION -->
+<div id="nav">
+  <button class="nav-btn" id="prev" aria-label="Previous slide">
+    <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="dot-nav" id="dot-nav"></div>
+  <button class="nav-btn" id="next" aria-label="Next slide">
+    <svg class="icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+<div id="hint">&#8592; &#8594; to navigate</div>
+
+<!-- ═══════════════════════════════════════════
+     SLIDES
+═══════════════════════════════════════════ -->
+<div id="deck">
+
+<!-- ─── 1. COVER ─── -->
+<div class="slide active">
+  <div class="ani-1" style="font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:0.2em;color:var(--teal);margin-bottom:var(--s3);">INVEXA</div>
+  <h1 class="headline ani-2">Ad Management <em>Portfolio</em></h1>
+  <div class="rule ani-3"></div>
+  <p class="subline ani-3">Results-Driven Campaigns for Growth-Focused Brands</p>
+  <p class="ani-4" style="margin-top:var(--s6);font-size:var(--t-xs);letter-spacing:0.12em;color:var(--text-3);">invexa.com</p>
+</div>
+
+<!-- ─── 2. OUR PROCESS ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">How We Work</div>
+  <h2 class="section-title ani-2">Our <em>Process</em></h2>
+  <p class="section-sub ani-3">End-to-end campaign management from strategy to reporting.</p>
+  <ul class="checklist ani-4">
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Define campaign goals based on client objectives
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Establish ad budget aligned with campaign goals and create a media plan according to investment
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Build audiences based on the target demographics of the client's product or service
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Confirm campaign activation dates and optimize based on key inflection points during the campaign
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Manage ad campaigns based on objectives and continuously optimize
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Track budget and adjust campaigns based on ad set performance
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Deliver live tracking reports for the client
+    </li>
+    <li>
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Final campaign report with highlights and next steps
+    </li>
+  </ul>
+</div>
+
+<!-- ─── 3. SEGMENTATION ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">Targeting</div>
+  <h2 class="section-title ani-2">Audience <em>Segmentation</em> Strategy</h2>
+  <p class="section-sub ani-3">We plan targeting based on:</p>
+  <div class="card-grid ani-4">
+    <div class="card">
+      <div class="card-icon" style="color:var(--teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="card-title">Audience Retargeting</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="color:var(--teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="card-title">Lookalike Audiences</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="color:var(--teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      </div>
+      <div class="card-title">Brand-Related Interests</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="color:var(--teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <div class="card-title">Current Client Lists</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="color:var(--teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div class="card-title">Meta Advantage+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 4. CARUPANO USA ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">Case Study</div>
+  <h2 class="section-title ani-2" style="margin-bottom:var(--s1);">Carupano <em>USA</em></h2>
+  <p class="section-sub ani-3" style="margin-bottom:var(--s3);">Premium Venezuelan rum brand expanding into the American market. We ran an awareness and brand recognition campaign focused on increasing reach in specific US states where the product is available, while optimizing audiences toward the brand's target demographic.</p>
+  <div class="case-layout ani-4">
+    <div class="case-left">
+      <ul class="case-bullets">
+        <li>Recovered and restructured the brand's Business Manager from scratch</li>
+        <li>Built a full media plan structured around the brand's investment capacity and market objectives</li>
+        <li>Created potential audiences segmented by interests, socioeconomic level, geographic region, and product line availability</li>
+        <li>Installed and configured Meta Pixel for efficient traffic tracking and retargeting audience creation</li>
+        <li>Ran A/B tests on creatives to identify which formats and messaging resonated with the target audience</li>
+        <li>Deployed video views campaigns to feed brand recognition and build custom audiences based on engaged viewers</li>
+        <li>Provided ongoing creative asset advisory — recommending new content directions based on real campaign performance data</li>
+      </ul>
+    </div>
+    <div class="case-right">
+      <img src="images/IMG_5331.jpg" alt="Carupano USA" class="case-img">
+    </div>
+  </div>
+</div>
+
+<!-- ─── 5. CUADRO ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">Case Study</div>
+  <h2 class="section-title ani-2" style="margin-bottom:var(--s1);">Cuadro</h2>
+  <p class="section-sub ani-3" style="margin-bottom:var(--s3);">Latin American lifestyle and accessories brand. We implemented a monthly ad budget planning system to standardize investment and define clear objectives campaign by campaign — driving sustained, measurable growth across all key metrics.</p>
+  <div class="case-layout ani-4">
+    <div class="case-left">
+      <ul class="case-bullets">
+        <li>Standardized monthly ad budget planning to define clear campaign-by-campaign objectives</li>
+        <li>Built and optimized audience segments for the Latin American lifestyle market</li>
+        <li>Continuous A/B testing of creatives to maximize engagement and reduce cost per result</li>
+        <li>Managed weekly budget adjustments based on ad set performance data</li>
+      </ul>
+      <div class="case-stats">
+        <div class="stat"><div class="stat-n">19.6%</div><div class="stat-l">Increase in post reach</div></div>
+        <div class="stat"><div class="stat-n">69.4%</div><div class="stat-l">Website traffic growth via Meta ads</div></div>
+        <div class="stat"><div class="stat-n">6-9K</div><div class="stat-l">New followers monthly</div></div>
+        <div class="stat"><div class="stat-n">$0.02</div><div class="stat-l">Cost per result (down from $0.08)</div></div>
+      </div>
+    </div>
+    <div class="case-right">
+      <img src="images/IMG_5328.jpg" alt="Cuadro" class="case-img">
+    </div>
+  </div>
+</div>
+
+<!-- ─── 6. ON2PETS ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">Case Study</div>
+  <h2 class="section-title ani-2" style="margin-bottom:var(--s1);">On2Pets</h2>
+  <p class="section-sub ani-3" style="margin-bottom:var(--s3);">US-based pet furniture brand selling stylish, non-toxic cat trees online. We redefined the full funnel strategy — upper funnel with brand video to drive awareness, middle and bottom funnel fed by lookalike and retargeting audiences built from engaged viewers and site visitors.</p>
+  <div class="case-layout ani-4">
+    <div class="case-left">
+      <ul class="case-bullets">
+        <li>Optimized and restructured audiences with retargeting and lookalike creation from existing customer data</li>
+        <li>Adapted new creatives to multiple ad formats (feed, stories, reels) for maximum placement coverage</li>
+        <li>Created 5 different versions of each ad and continuously optimized toward the best performing variation</li>
+        <li>Built a full-funnel flow: awareness video at the top, conversion-focused ads retargeting warm audiences at the bottom</li>
+      </ul>
+      <div class="case-stats">
+        <div class="stat"><div class="stat-n">42%</div><div class="stat-l">Month-over-month sales increase</div></div>
+        <div class="stat"><div class="stat-n">3%</div><div class="stat-l">Average CTR across campaigns</div></div>
+        <div class="stat"><div class="stat-n">50%</div><div class="stat-l">CPC reduced to half</div></div>
+      </div>
+    </div>
+    <div class="case-right">
+      <img src="images/IMG_5329.jpg" alt="On2Pets" class="case-img">
+    </div>
+  </div>
+</div>
+
+<!-- ─── 7. HABBIO UK ─── -->
+<div class="slide">
+  <div class="eyebrow ani-1">Case Study</div>
+  <h2 class="section-title ani-2" style="margin-bottom:var(--s1);">Habbio <em>UK</em></h2>
+  <p class="section-sub ani-3" style="margin-bottom:var(--s3);">UK-based eco-friendly furniture brand entering a saturated market. We built the brand launch strategy from the ground up — structuring the ad account, building audiences, and running 4 months of foundational campaigns that fed into a record-breaking Black Friday activation.</p>
+  <div class="case-layout ani-4">
+    <div class="case-left">
+      <ul class="case-bullets">
+        <li>Structured the Business Manager from scratch and created potential audience segments for the UK furniture market</li>
+        <li>Installed Meta Pixel for efficient traffic tracking and to build retargeting audiences from site visitors</li>
+        <li>Ran A/B tests on creatives across formats to identify what resonated with eco-conscious furniture buyers</li>
+        <li>Spent 4 months building and nurturing audiences through awareness campaigns — creating a warm base of engaged prospects</li>
+      </ul>
+      <p style="font-size:14px;color:var(--teal);margin-top:var(--s2);line-height:1.4;font-weight:600;">After 4 months — 15% off Black Friday campaign results:</p>
+      <div class="case-stats" style="margin-top:var(--s1);">
+        <div class="stat"><div class="stat-n">33%</div><div class="stat-l">Traffic increase, same budget</div></div>
+        <div class="stat"><div class="stat-n">3x</div><div class="stat-l">Record sales, tripling prior month</div></div>
+        <div class="stat"><div class="stat-n">&#8593;CTR</div><div class="stat-l">Comments & shares driving reach</div></div>
+      </div>
+    </div>
+    <div class="case-right">
+      <img src="images/IMG_5330.jpg" alt="Habbio UK" class="case-img">
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+/* ═══════════════════════════════
+   PARTICLE CANVAS
+═══════════════════════════════ */
+(function() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  const PARTICLE_COUNT = 60;
+  const MAX_DIST = 120;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 2 + 1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,196,168,0.4)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const q = particles[j];
+        const dx = p.x - q.x, dy = p.y - q.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MAX_DIST) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `rgba(0,196,168,${0.15 * (1 - dist / MAX_DIST)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════
+   SLIDE ENGINE
+═══════════════════════════════ */
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const counter = document.getElementById('slide-counter');
+  const progress = document.getElementById('progress');
+  const dotNav = document.getElementById('dot-nav');
+  const hint = document.getElementById('hint');
+  let current = 0;
+  let transitioning = false;
+
+  // Build dots
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotNav.appendChild(d);
+  }
+  const dots = dotNav.querySelectorAll('.dot');
+
+  function goTo(idx) {
+    if (idx === current || transitioning) return;
+    transitioning = true;
+    slides[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+    counter.textContent = (current + 1) + ' / ' + total;
+    progress.style.width = ((current + 1) / total * 100) + '%';
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    setTimeout(() => transitioning = false, 420);
+  }
+
+  function next() { if (current < total - 1) goTo(current + 1); }
+  function prev() { if (current > 0) goTo(current - 1); }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
+  });
+
+  // Touch / Swipe
+  let touchStartX = 0, touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx < 0) next(); else prev();
+    }
+  }, { passive: true });
+
+  // Hide hint after first nav
+  let hintShown = true;
+  function hideHint() {
+    if (hintShown) { hint.style.opacity = '0'; hintShown = false; }
+  }
+  document.addEventListener('keydown', hideHint);
+  document.addEventListener('touchstart', hideHint);
+  document.getElementById('next').addEventListener('click', hideHint);
+
+  // Init progress
+  progress.style.width = (1 / total * 100) + '%';
+})();
+</script>
+</body>
+</html>
